@@ -50,6 +50,8 @@ class _MapScreenState extends State<MapScreen> {
                       initialLocation: locationState.lastKnowLocation!,
                       polylines: polylines.values.toSet(),
                     ),
+                    const SearchBarWidget(),
+                    const ManualMarkerWidget()
                   ],
                 ),
               );
