@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:maps_app/models/models.dart';
+import '../blocs/blocs.dart';
 
 class SearchDestinationDelegate extends SearchDelegate<SearchResultModel> {
   SearchDestinationDelegate() : super(searchFieldLabel: 'Search something');
@@ -25,11 +28,47 @@ class SearchDestinationDelegate extends SearchDelegate<SearchResultModel> {
 
   @override
   Widget buildResults(BuildContext context) {
-    return const Text('buildResults');
+    final searchBloc = BlocProvider.of<SearchBloc>(context);
+    final proximity =
+        BlocProvider.of<LocationBloc>(context).state.lastKnowLocation!;
+    searchBloc.getPlacesByQuery(proximity, query);
+
+    return BlocBuilder<SearchBloc, SearchState>(
+      builder: (context, state) {
+        final places = state.places;
+        return ListView.separated(
+          itemBuilder: (context, index) {
+            final place = places[index];
+            return ListTile(
+              title: Text(place.text),
+              subtitle: Text(place.placeName),
+              leading: const Icon(Icons.place_outlined, color: Colors.black),
+              onTap: () {
+                final result = SearchResultModel(
+                  cancel: false,
+                  manual: false,
+                  position: LatLng(place.center[1], place.center[0]),
+                  name: place.text,
+                  description: place.placeName,
+                );
+
+                searchBloc.add(OnAddPlaceToHistory(place));
+
+                close(context, result);
+              },
+            );
+          },
+          separatorBuilder: (context, index) => const Divider(),
+          itemCount: places.length,
+        );
+      },
+    );
   }
 
   @override
   Widget buildSuggestions(BuildContext context) {
+    final history = BlocProvider.of<SearchBloc>(context).state.history;
+
     return ListView(
       children: [
         ListTile(
@@ -41,6 +80,24 @@ class SearchDestinationDelegate extends SearchDelegate<SearchResultModel> {
           onTap: () {
             close(context, SearchResultModel(cancel: false, manual: true));
           },
+        ),
+        ...history.map(
+          (place) => ListTile(
+            title: Text(place.text),
+            subtitle: Text(place.placeName),
+            leading: const Icon(Icons.place_outlined, color: Colors.black),
+            onTap: () {
+              final result = SearchResultModel(
+                cancel: false,
+                manual: false,
+                position: LatLng(place.center[1], place.center[0]),
+                name: place.text,
+                description: place.placeName,
+              );
+
+              close(context, result);
+            },
+          ),
         ),
       ],
     );
