@@ -5,6 +5,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:maps_app/helpers/helpers.dart';
 
 import 'package:maps_app/themes/themes.dart';
 import '../../models/models.dart';
@@ -31,7 +32,12 @@ class MapBloc extends Bloc<MapEvent, MapState> {
       ),
     );
     on<OnPolylineEvent>(
-      (event, emit) => emit(state.copyWith(polylines: event.polylines)),
+      (event, emit) => emit(
+        state.copyWith(
+          polylines: event.polylines,
+          markers: event.markers,
+        ),
+      ),
     );
 
     locationStateSubscription = locationBloc.stream.listen((locationState) {
@@ -91,7 +97,38 @@ class MapBloc extends Bloc<MapEvent, MapState> {
     final currentPolylines = Map<String, Polyline>.from(state.polylines);
     currentPolylines['route'] = route;
 
-    add(OnPolylineEvent(currentPolylines));
+    double kilometers = destination.distance / 1000;
+    kilometers = (kilometers * 100).floorToDouble();
+    kilometers /= 100;
+
+    int tripLength = (destination.duration / 60).floorToDouble().toInt();
+
+    final startMarkerImage = await getStartCustomMarker(
+      tripLength,
+      'Current Location',
+    );
+    final endMarkerImage = await getEndCustomMarker(
+      kilometers.toInt(),
+      destination.destinationPlace.text,
+    );
+
+    final startMarker = Marker(
+      anchor: const Offset(0.5, 1),
+      markerId: const MarkerId('start'),
+      position: destination.points.first,
+      icon: startMarkerImage,
+    );
+    final endMarker = Marker(
+      markerId: const MarkerId('end'),
+      position: destination.points.last,
+      icon: endMarkerImage,
+    );
+
+    final currentMarkers = Map<String, Marker>.from(state.markers);
+    currentMarkers['start'] = startMarker;
+    currentMarkers['end'] = endMarker;
+
+    add(OnPolylineEvent(currentPolylines, currentMarkers));
   }
 
   void moveCamera(LatLng newLocation) {

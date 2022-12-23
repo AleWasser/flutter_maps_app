@@ -46,20 +46,26 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     final trafficResponse =
         await trafficService.getCoordsStartToEnd(start, end);
 
+    final destinationPlace =
+        await trafficService.getInformationByCoordinates(end);
+
     final distance = trafficResponse.routes[0].distance;
     final duration = trafficResponse.routes[0].duration;
     final geometry = trafficResponse.routes[0].geometry;
     final points = decodePolyline(geometry, accuracyExponent: 6)
-        .map((coordinates) => LatLng(
-              coordinates[0].toDouble(),
-              coordinates[1].toDouble(),
-            ))
+        .map(
+          (coordinates) => LatLng(
+            coordinates[0].toDouble(),
+            coordinates[1].toDouble(),
+          ),
+        )
         .toList();
 
     return RouteDestinationModel(
       points: points,
       duration: duration,
       distance: distance,
+      destinationPlace: destinationPlace,
     );
   }
 

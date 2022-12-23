@@ -36,10 +36,20 @@ class TrafficService {
     if (query.isEmpty) return [];
     final url = '$_basePlacesUrl/$query.json';
     final response = await _dioPlaces.get(url, queryParameters: {
-      'proximity': '${proximity.longitude}, ${proximity.latitude}'
+      'proximity': '${proximity.longitude}, ${proximity.latitude}',
+      'limit': 7
     });
     final placesResponse = PlacesResponseModel.fromMap(response.data);
 
     return placesResponse.features;
+  }
+
+  Future<Feature> getInformationByCoordinates(LatLng coordinates) async {
+    final url =
+        '$_basePlacesUrl/${coordinates.longitude}, ${coordinates.latitude}.json';
+    final response = await _dioPlaces.get(url, queryParameters: {'limit': 1});
+    final placesResponse = PlacesResponseModel.fromMap(response.data);
+
+    return placesResponse.features.first;
   }
 }
